@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<!--
+  Prodigy Infotech - Web Development Internship
+  Task 05 : Weather Web App
+  Submitted by : Khushi
+
+  About this file:
+  - This is a single HTML file. It has the page (HTML), the look (CSS in <style>)
+    and the logic (JavaScript in <script>) all together so it is easy to read.
+  - It uses the free Open-Meteo API. No API key is needed.
+  - You can either type a city name OR click "Use my location".
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather App | Prodigy Infotech Task 05 - Khushi</title>
+
+  <!-- ============== STYLES ============== -->
+  <!-- Kept the colors muted (paper + sage green) so it doesn't look too "designed". -->
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #ece8de;          /* paper-ish background */
+      color: #2a2a28;
+      font-family: Georgia, "Times New Roman", serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    /* heading area */
+    header { text-align: center; max-width: 420px; margin-bottom: 24px; }
+    header .tag {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #6b6a63;
+    }
+    header h1 { margin: 8px 0 4px; font-size: 24px; }
+    header p  { margin: 0; font-size: 14px; color: #6b6a63; }
+
+    /* main card */
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #f4f1e8;
+      border: 1px solid #bdb8a9;
+      border-radius: 4px;
+      padding: 24px;
+    }
+
+    /* search row */
+    form { display: flex; gap: 8px; flex-wrap: wrap; }
+    form input[type="text"] { min-width: 0; }
+    /* on small phones stack the search button below the input */
+    @media (max-width: 420px) {
+      form { flex-direction: column; }
+      form button { width: 100%; }
+      body { padding: 24px 12px; }
+      .card { padding: 16px; }
+      .temp { font-size: 40px; }
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #ece8de;
+      border: 1px solid #a8a397;
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: #7a766c; }
+
+    /* buttons */
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #5b6b5a;
+      color: #f4f1e8;
+      border: 1px solid #7a766c;
+    }
+    .btn-primary:hover { background: #4f5e4e; }
+    .btn-secondary {
+      width: 100%;
+      margin-top: 8px;
+      background: #e6e2d4;
+      color: #2a2a28;
+      border: 1px solid #a8a397;
+    }
+    .btn-secondary:hover { background: #dcd7c6; }
+
+    /* status messages */
+    .msg { margin-top: 16px; text-align: center; font-size: 14px; }
+    .msg.error { color: #8a4a3b; }
+    .msg.info  { color: #6b6a63; }
+
+    /* result block */
+    .result {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #d8d3c3;
+    }
+    .place { font-size: 14px; color: #6b6a63; margin: 0; }
+    .temp  { font-size: 48px; font-weight: 600; margin: 4px 0 0; }
+    .cond  { font-size: 14px; color: #3a3a38; margin: 0; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 16px 0 12px;
+    }
+    .stat {
+      background: #ece8de;
+      border: 1px solid #d8d3c3;
+      border-radius: 4px;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .stat .label {
+      display: block;
+      font-size: 11px;
+      color: #6b6a63;
+      margin-bottom: 2px;
+    }
+    .updated { font-size: 11px; color: #7a766c; margin: 0; }
+
+    .hidden { display: none; }
+
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 12px;
+      color: #7a766c;
+    }
+    footer .name { color: #3a3a38; font-weight: 500; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============== HEADER ============== -->
+  <header>
+    <p class="tag">Prodigy Infotech &middot; Task 05</p>
+    <h1>Weather</h1>
+    <p>Check current weather by city name or your location.</p>
+  </header>
+
+  <!-- ============== MAIN CARD ============== -->
+  <section class="card" aria-label="Weather">
+
+    <!-- search form: type a city and press Search (or Enter) -->
+    <form id="searchForm">
+      <input id="cityInput" type="text" placeholder="Enter a city (e.g. Mumbai)" />
+      <button type="submit" class="btn-primary">Search</button>
+    </form>
+
+    <!-- alternative: use the browser's location -->
+    <button id="locBtn" type="button" class="btn-secondary">Use my location</button>
+
+    <!-- status messages (loading / error) -->
+    <p id="loading" class="msg info hidden">Loading…</p>
+    <p id="error"   class="msg error hidden"></p>
+
+    <!-- the result is filled in by JS, hidden until we have data -->
+    <div id="result" class="result hidden">
+      <p class="place" id="place"></p>
+      <p class="temp"  id="temp"></p>
+      <p class="cond"  id="cond"></p>
+
+      <dl class="stats">
+        <div class="stat"><span class="label">Feels like</span><span id="feels"></span></div>
+        <div class="stat"><span class="label">Humidity</span><span id="humidity"></span></div>
+        <div class="stat"><span class="label">Wind</span><span id="wind"></span></div>
+      </dl>
+
+      <p class="updated">Updated: <span id="updated"></span></p>
+    </div>
+  </section>
+
+  <!-- ============== FOOTER ============== -->
+  <footer>
+    Made by <span class="name">Khushi</span> ·
+    Prodigy Infotech Web Development Internship
+    <br />
+    <span style="font-size:10px">Weather data: Open-Meteo</span>
+  </footer>
+
+  <!-- ============== SCRIPT ============== -->
+  <script>
+    // ---- 1. Grab the elements we'll touch ----
+    const form     = document.getElementById("searchForm");
+    const cityIn   = document.getElementById("cityInput");
+    const locBtn   = document.getElementById("locBtn");
+    const loadingEl= document.getElementById("loading");
+    const errorEl  = document.getElementById("error");
+    const resultEl = document.getElementById("result");
+
+    // ---- 2. Open-Meteo weather codes -> short description ----
+    // (just the common ones, anything else shows "Unknown")
+    const CODES = {
+      0:  "Clear sky",
+      1:  "Mainly clear",
+      2:  "Partly cloudy",
+      3:  "Overcast",
+      45: "Foggy", 48: "Foggy",
+      51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle",
+      61: "Light rain",    63: "Rain",    65: "Heavy rain",
+      71: "Light snow",    73: "Snow",    75: "Heavy snow",
+      80: "Rain showers",  81: "Rain showers", 82: "Heavy showers",
+      95: "Thunderstorm",  96: "Thunderstorm w/ hail", 99: "Thunderstorm w/ hail"
+    };
+    function describe(code) { return CODES[code] || "Unknown"; }
+
+    // ---- 3. Small helpers to show/hide the status messages ----
+    function showLoading() {
+      loadingEl.classList.remove("hidden");
+      errorEl.classList.add("hidden");
+      resultEl.classList.add("hidden");
+    }
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.remove("hidden");
+      loadingEl.classList.add("hidden");
+    }
+    function hideStatus() {
+      loadingEl.classList.add("hidden");
+      errorEl.classList.add("hidden");
+    }
+
+    // ---- 4. Fetch weather for given coordinates and show it ----
+    async function loadWeather(lat, lon, place) {
+      showLoading();
+      try {
+        const url =
+          "https://api.open-meteo.com/v1/forecast" +
+          "?latitude="  + lat +
+          "&longitude=" + lon +
+          "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code" +
+          "&wind_speed_unit=kmh";
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Weather request failed");
+        const data = await res.json();
+        const c = data.current;
+
+        // fill the result block
+        document.getElementById("place").textContent    = place;
+        document.getElementById("temp").textContent     = Math.round(c.temperature_2m) + "°C";
+        document.getElementById("cond").textContent     = describe(c.weather_code);
+        document.getElementById("feels").textContent    = Math.round(c.apparent_temperature) + "°C";
+        document.getElementById("humidity").textContent = c.relative_humidity_2m + "%";
+        document.getElementById("wind").textContent     = Math.round(c.wind_speed_10m) + " km/h";
+        document.getElementById("updated").textContent  = new Date(c.time).toLocaleString();
+
+        hideStatus();
+        resultEl.classList.remove("hidden");
+      } catch (e) {
+        showError("Could not load weather. Try again.");
+      }
+    }
+
+    // ---- 5. Turn a city name into coordinates, then load the weather ----
+    async function searchCity(name) {
+      showLoading();
+      try {
+        const res = await fetch(
+          "https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(name)
+        );
+        const data = await res.json();
+        const hit = data && data.results && data.results[0];
+        if (!hit) { showError("Place not found."); return; }
+
+        // build a nice display name like "Mumbai, Maharashtra, India"
+        const label = [hit.name, hit.admin1, hit.country].filter(Boolean).join(", ");
+        await loadWeather(hit.latitude, hit.longitude, label);
+      } catch (e) {
+        showError("Could not search that place.");
+      }
+    }
+
+    // ---- 6. Event handlers ----
+
+    // when the user submits the search form
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const q = cityIn.value.trim();
+      if (q) searchCity(q);
+    });
+
+    // Small function for getting the user's location.
+    // getCurrentPosition is the line that makes the browser ask for permission.
+    // If location was blocked earlier, the browser will not show the popup again.
+    function useMyLocation() {
+      // Browsers only allow geolocation on HTTPS (or localhost). If you
+      // double-click this file and open it as file:// it will be blocked
+      // straight away — no prompt is shown. Catch that first so the user
+      // gets a clear message instead of "permission denied".
+      if (!window.isSecureContext) {
+        showError("Location needs https:// — open this page on a web server, not as a local file.");
+        return;
+      }
+      if (!navigator.geolocation) {
+        showError("Geolocation not supported by this browser.");
+        return;
+      }
+
+      showLoading();
+      errorEl.textContent = "Your browser should ask for location permission now.";
+      errorEl.classList.remove("hidden");
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          loadWeather(pos.coords.latitude, pos.coords.longitude, "My location");
+        },
+        function (err) {
+          // err.code: 1 = denied, 2 = unavailable, 3 = timeout
+          if (err && err.code === 1)      showError("The browser blocked location. Tap the lock/site settings icon, set Location to Allow, then click the button again.");
+          else if (err && err.code === 2) showError("Could not get your location right now.");
+          else if (err && err.code === 3) showError("Location request timed out.");
+          else                            showError("Could not get your location.");
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    // when the user clicks "Use my location"
+    locBtn.addEventListener("click", useMyLocation);
+
+    // ---- 7. Show something on first load so the page isn't empty ----
+    loadWeather(28.6139, 77.209, "New Delhi, India");
+  </script>
+</body>
+</html>
