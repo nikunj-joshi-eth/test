@@ -1,345 +1,788 @@
 <!DOCTYPE html>
-<!--
-  Prodigy Infotech - Web Development Internship
-  Task 05 : Weather Web App
-  Submitted by : Khushi
-
-  About this file:
-  - This is a single HTML file. It has the page (HTML), the look (CSS in <style>)
-    and the logic (JavaScript in <script>) all together so it is easy to read.
-  - It uses the free Open-Meteo API. No API key is needed.
-  - You can either type a city name OR click "Use my location".
--->
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weather App | Prodigy Infotech Task 05 - Khushi</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Weather App — Prodigy Infotech Task 05</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
 
-  <!-- ============== STYLES ============== -->
-  <!-- Kept the colors muted (paper + sage green) so it doesn't look too "designed". -->
-  <style>
-    * { box-sizing: border-box; }
+  /* ---------- reset & base ---------- */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #ece8de;          /* paper-ish background */
-      color: #2a2a28;
-      font-family: Georgia, "Times New Roman", serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 16px;
-    }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0B1E3D;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #EAEFF6;
+  }
 
-    /* heading area */
-    header { text-align: center; max-width: 420px; margin-bottom: 24px; }
-    header .tag {
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #6b6a63;
-    }
-    header h1 { margin: 8px 0 4px; font-size: 24px; }
-    header p  { margin: 0; font-size: 14px; color: #6b6a63; }
+  /* the whole app sits on a card so it feels like a real product, not a page */
+  .app {
+    width: 100%;
+    max-width: 420px;
+    background: #102747;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
 
-    /* main card */
-    .card {
-      width: 100%;
-      max-width: 420px;
-      background: #f4f1e8;
-      border: 1px solid #bdb8a9;
-      border-radius: 4px;
-      padding: 24px;
-    }
+  /* ---------- search ---------- */
+  .search-zone {
+    padding: 20px 20px 0 20px;
+    position: relative;
+  }
 
-    /* search row */
-    form { display: flex; gap: 8px; flex-wrap: wrap; }
-    form input[type="text"] { min-width: 0; }
-    /* on small phones stack the search button below the input */
-    @media (max-width: 420px) {
-      form { flex-direction: column; }
-      form button { width: 100%; }
-      body { padding: 24px 12px; }
-      .card { padding: 16px; }
-      .temp { font-size: 40px; }
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 8px 12px;
-      font-size: 14px;
-      font-family: inherit;
-      background: #ece8de;
-      border: 1px solid #a8a397;
-      border-radius: 4px;
-      outline: none;
-    }
-    input[type="text"]:focus { border-color: #7a766c; }
+  .search-row {
+    display: flex;
+    gap: 8px;
+  }
 
-    /* buttons */
-    button {
-      font-family: inherit;
-      font-size: 14px;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .btn-primary {
-      background: #5b6b5a;
-      color: #f4f1e8;
-      border: 1px solid #7a766c;
-    }
-    .btn-primary:hover { background: #4f5e4e; }
-    .btn-secondary {
-      width: 100%;
-      margin-top: 8px;
-      background: #e6e2d4;
-      color: #2a2a28;
-      border: 1px solid #a8a397;
-    }
-    .btn-secondary:hover { background: #dcd7c6; }
+  .search-input {
+    flex: 1;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #EAEFF6;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
 
-    /* status messages */
-    .msg { margin-top: 16px; text-align: center; font-size: 14px; }
-    .msg.error { color: #8a4a3b; }
-    .msg.info  { color: #6b6a63; }
+  .search-input::placeholder { color: #7E8FA6; }
 
-    /* result block */
-    .result {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid #d8d3c3;
-    }
-    .place { font-size: 14px; color: #6b6a63; margin: 0; }
-    .temp  { font-size: 48px; font-weight: 600; margin: 4px 0 0; }
-    .cond  { font-size: 14px; color: #3a3a38; margin: 0; }
+  .search-input:focus {
+    border-color: #F4B860;
+    background: rgba(255,255,255,0.1);
+  }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin: 16px 0 12px;
-    }
-    .stat {
-      background: #ece8de;
-      border: 1px solid #d8d3c3;
-      border-radius: 4px;
-      padding: 8px;
-      text-align: center;
-      font-size: 14px;
-    }
-    .stat .label {
-      display: block;
-      font-size: 11px;
-      color: #6b6a63;
-      margin-bottom: 2px;
-    }
-    .updated { font-size: 11px; color: #7a766c; margin: 0; }
+  .locate-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07);
+    color: #EAEFF6;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
 
-    .hidden { display: none; }
+  .locate-btn:hover { background: rgba(255,255,255,0.14); }
+  .locate-btn:active { transform: scale(0.95); }
 
-    footer {
-      margin-top: 40px;
-      text-align: center;
-      font-size: 12px;
-      color: #7a766c;
-    }
-    footer .name { color: #3a3a38; font-weight: 500; }
-  </style>
+  .locate-btn svg { width: 20px; height: 20px; }
+
+  .locate-btn.loading svg {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* dropdown of matching cities — appears as you type */
+  .suggestions {
+    position: absolute;
+    top: 64px;
+    left: 20px;
+    right: 20px;
+    background: #16315A;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 20;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    display: none;
+  }
+
+  .suggestions.show { display: block; }
+
+  .suggestion-item {
+    padding: 11px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover, .suggestion-item.active { background: rgba(244,184,96,0.12); }
+
+  .suggestion-name { color: #EAEFF6; font-weight: 500; }
+  .suggestion-region { color: #7E8FA6; font-size: 12px; white-space: nowrap; }
+
+  .suggestion-empty {
+    padding: 12px 14px;
+    color: #7E8FA6;
+    font-size: 13px;
+  }
+
+  /* ---------- scene (the animated hero) ---------- */
+  .scene {
+    position: relative;
+    height: 220px;
+    margin: 18px 20px 0 20px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1A3B6B 0%, #0B1E3D 100%);
+    transition: background 0.6s ease;
+  }
+
+  .scene.sunny { background: linear-gradient(180deg, #2C5C8E 0%, #1A3B6B 100%); }
+  .scene.cloudy { background: linear-gradient(180deg, #344A63 0%, #1F2F44 100%); }
+  .scene.rainy { background: linear-gradient(180deg, #1C2E42 0%, #11202F 100%); }
+  .scene.night { background: linear-gradient(180deg, #0A1830 0%, #050D1C 100%); }
+
+  .scene-layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* sun */
+  .sun {
+    position: absolute;
+    top: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FFE3A0, #F4B860 70%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .scene.sunny .sun { opacity: 1; animation: sun-pulse 4s ease-in-out infinite; }
+
+  @keyframes sun-pulse {
+    0%, 100% { box-shadow: 0 0 30px 6px rgba(244,184,96,0.35); }
+    50% { box-shadow: 0 0 44px 12px rgba(244,184,96,0.55); }
+  }
+
+  .ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 90px;
+    background: linear-gradient(to bottom, rgba(244,184,96,0.45), transparent);
+    transform-origin: top center;
+    border-radius: 4px;
+  }
+
+  .scene.sunny .ray { animation: ray-rotate 30s linear infinite; }
+
+  @keyframes ray-rotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  /* moon, for night */
+  .moon {
+    position: absolute;
+    top: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #DCE4F0;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    box-shadow: inset -12px -4px 0 0 #0A1830;
+  }
+
+  .scene.night .moon { opacity: 1; }
+
+  .star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #EAEFF6;
+    border-radius: 50%;
+    opacity: 0;
+  }
+
+  .scene.night .star { opacity: 0.8; animation: twinkle 2.4s ease-in-out infinite; }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.9; }
+  }
+
+  /* clouds — used for cloudy AND as backdrop for rain */
+  .cloud {
+    position: absolute;
+    background: #C9D3DF;
+    border-radius: 40px;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: #C9D3DF;
+    border-radius: 50%;
+  }
+
+  .scene.cloudy .cloud, .scene.rainy .cloud { opacity: 1; }
+  .scene.rainy .cloud { background: #6E7E8F; }
+  .scene.rainy .cloud::before, .scene.rainy .cloud::after { background: #6E7E8F; }
+
+  .cloud-1 {
+    width: 110px; height: 34px; top: 50px; left: -20px;
+    animation: drift-right 18s linear infinite;
+  }
+  .cloud-1::before { width: 50px; height: 50px; top: -26px; left: 14px; }
+  .cloud-1::after { width: 40px; height: 40px; top: -18px; left: 56px; }
+
+  .cloud-2 {
+    width: 90px; height: 28px; top: 90px; left: 200px;
+    animation: drift-right 24s linear infinite;
+    animation-delay: -6s;
+  }
+  .cloud-2::before { width: 40px; height: 40px; top: -20px; left: 12px; }
+  .cloud-2::after { width: 32px; height: 32px; top: -14px; left: 46px; }
+
+  @keyframes drift-right {
+    from { transform: translateX(-140px); }
+    to   { transform: translateX(420px); }
+  }
+
+  /* rain */
+  .drop {
+    position: absolute;
+    width: 2px;
+    height: 16px;
+    background: linear-gradient(to bottom, transparent, #9DC4E0);
+    opacity: 0;
+    border-radius: 2px;
+  }
+
+  .scene.rainy .drop { opacity: 0.8; animation: fall 0.9s linear infinite; }
+
+  @keyframes fall {
+    from { transform: translateY(-20px); opacity: 0; }
+    10%  { opacity: 0.8; }
+    to   { transform: translateY(220px); opacity: 0.1; }
+  }
+
+  /* ground / horizon line, gives the scene a floor */
+  .horizon {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(to top, rgba(0,0,0,0.25), transparent);
+  }
+
+  /* ---------- readout ---------- */
+  .readout {
+    padding: 18px 24px 24px 24px;
+    text-align: center;
+  }
+
+  .place-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #EAEFF6;
+    letter-spacing: 0.2px;
+  }
+
+  .place-sub {
+    font-size: 12px;
+    color: #7E8FA6;
+    margin-top: 2px;
+  }
+
+  .temp-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .temp-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 72px;
+    line-height: 1;
+    color: #EAEFF6;
+  }
+
+  .temp-unit {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    color: #9CB0C7;
+    margin-top: 8px;
+  }
+
+  .condition-text {
+    font-size: 15px;
+    color: #C7D4E3;
+    margin-top: 2px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: #7E8FA6;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #EAEFF6;
+    margin-top: 3px;
+  }
+
+  /* ---------- states ---------- */
+  .state-msg {
+    padding: 40px 24px;
+    text-align: center;
+    color: #9CB0C7;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .state-msg.error { color: #E8A77A; }
+
+  /* little spinner shown next to "Detecting your location…" so the user
+     can see something is actually happening, not a frozen screen */
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(244,184,96,0.25);
+    border-top-color: #F4B860;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: -2px;
+    margin-right: 8px;
+  }
+
+  .hidden { display: none !important; }
+
+
+  /* ---------- footer credit, since this is a real assignment ---------- */
+  .footer-credit {
+    text-align: center;
+    font-size: 11px;
+    color: #4D6080;
+    padding: 0 20px 18px 20px;
+    letter-spacing: 0.3px;
+  }
+
+  @media (max-width: 380px) {
+    .temp-value { font-size: 60px; }
+    .stat-row { gap: 14px; }
+  }
+
+</style>
 </head>
-
 <body>
 
-  <!-- ============== HEADER ============== -->
-  <header>
-    <p class="tag">Prodigy Infotech &middot; Task 05</p>
-    <h1>Weather</h1>
-    <p>Check current weather by city name or your location.</p>
-  </header>
+<div class="app">
 
-  <!-- ============== MAIN CARD ============== -->
-  <section class="card" aria-label="Weather">
-
-    <!-- search form: type a city and press Search (or Enter) -->
-    <form id="searchForm">
-      <input id="cityInput" type="text" placeholder="Enter a city (e.g. Mumbai)" />
-      <button type="submit" class="btn-primary">Search</button>
-    </form>
-
-    <!-- alternative: use the browser's location -->
-    <button id="locBtn" type="button" class="btn-secondary">Use my location</button>
-
-    <!-- status messages (loading / error) -->
-    <p id="loading" class="msg info hidden">Loading…</p>
-    <p id="error"   class="msg error hidden"></p>
-
-    <!-- the result is filled in by JS, hidden until we have data -->
-    <div id="result" class="result hidden">
-      <p class="place" id="place"></p>
-      <p class="temp"  id="temp"></p>
-      <p class="cond"  id="cond"></p>
-
-      <dl class="stats">
-        <div class="stat"><span class="label">Feels like</span><span id="feels"></span></div>
-        <div class="stat"><span class="label">Humidity</span><span id="humidity"></span></div>
-        <div class="stat"><span class="label">Wind</span><span id="wind"></span></div>
-      </dl>
-
-      <p class="updated">Updated: <span id="updated"></span></p>
+  <div class="search-zone">
+    <div class="search-row">
+      <input
+        type="text"
+        id="cityInput"
+        class="search-input"
+        placeholder="Search a city..."
+        autocomplete="off"
+      >
+      <button class="locate-btn" id="locateBtn" title="Use current location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+        </svg>
+      </button>
     </div>
-  </section>
+    <div class="suggestions" id="suggestions"></div>
+  </div>
 
-  <!-- ============== FOOTER ============== -->
-  <footer>
-    Made by <span class="name">Khushi</span> ·
-    Prodigy Infotech Web Development Internship
-    <br />
-    <span style="font-size:10px">Weather data: Open-Meteo</span>
-  </footer>
+  <div id="scene" class="scene">
+    <div class="scene-layer">
+      <div class="sun" id="sun"></div>
+      <div class="ray" style="transform: rotate(0deg)"></div>
+      <div class="ray" style="transform: rotate(90deg)"></div>
+      <div class="ray" style="transform: rotate(180deg)"></div>
+      <div class="ray" style="transform: rotate(270deg)"></div>
 
-  <!-- ============== SCRIPT ============== -->
-  <script>
-    // ---- 1. Grab the elements we'll touch ----
-    const form     = document.getElementById("searchForm");
-    const cityIn   = document.getElementById("cityInput");
-    const locBtn   = document.getElementById("locBtn");
-    const loadingEl= document.getElementById("loading");
-    const errorEl  = document.getElementById("error");
-    const resultEl = document.getElementById("result");
+      <div class="moon"></div>
+      <div class="star" style="top: 20px; left: 40px;"></div>
+      <div class="star" style="top: 60px; left: 90px; animation-delay: -0.8s;"></div>
+      <div class="star" style="top: 30px; left: 280px; animation-delay: -1.4s;"></div>
+      <div class="star" style="top: 70px; left: 240px; animation-delay: -0.4s;"></div>
+      <div class="star" style="top: 100px; left: 320px; animation-delay: -1.8s;"></div>
 
-    // ---- 2. Open-Meteo weather codes -> short description ----
-    // (just the common ones, anything else shows "Unknown")
-    const CODES = {
-      0:  "Clear sky",
-      1:  "Mainly clear",
-      2:  "Partly cloudy",
-      3:  "Overcast",
-      45: "Foggy", 48: "Foggy",
-      51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle",
-      61: "Light rain",    63: "Rain",    65: "Heavy rain",
-      71: "Light snow",    73: "Snow",    75: "Heavy snow",
-      80: "Rain showers",  81: "Rain showers", 82: "Heavy showers",
-      95: "Thunderstorm",  96: "Thunderstorm w/ hail", 99: "Thunderstorm w/ hail"
-    };
-    function describe(code) { return CODES[code] || "Unknown"; }
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
 
-    // ---- 3. Small helpers to show/hide the status messages ----
-    function showLoading() {
-      loadingEl.classList.remove("hidden");
-      errorEl.classList.add("hidden");
-      resultEl.classList.add("hidden");
-    }
-    function showError(msg) {
-      errorEl.textContent = msg;
-      errorEl.classList.remove("hidden");
-      loadingEl.classList.add("hidden");
-    }
-    function hideStatus() {
-      loadingEl.classList.add("hidden");
-      errorEl.classList.add("hidden");
-    }
+      <div id="rainLayer"></div>
+    </div>
+    <div class="horizon"></div>
+  </div>
 
-    // ---- 4. Fetch weather for given coordinates and show it ----
-    async function loadWeather(lat, lon, place) {
-      showLoading();
-      try {
-        const url =
-          "https://api.open-meteo.com/v1/forecast" +
-          "?latitude="  + lat +
-          "&longitude=" + lon +
-          "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code" +
-          "&wind_speed_unit=kmh";
+  <div id="readout" class="readout hidden">
+    <div class="place-name" id="placeName">—</div>
+    <div class="place-sub" id="placeSub">—</div>
+    <div class="temp-row">
+      <span class="temp-value" id="tempValue">--</span>
+      <span class="temp-unit">°C</span>
+    </div>
+    <div class="condition-text" id="conditionText">—</div>
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Weather request failed");
-        const data = await res.json();
-        const c = data.current;
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-label">Feels like</div>
+        <div class="stat-value" id="statFeels">--°</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Humidity</div>
+        <div class="stat-value" id="statHumidity">--%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Wind</div>
+        <div class="stat-value" id="statWind">-- km/h</div>
+      </div>
+    </div>
+  </div>
 
-        // fill the result block
-        document.getElementById("place").textContent    = place;
-        document.getElementById("temp").textContent     = Math.round(c.temperature_2m) + "°C";
-        document.getElementById("cond").textContent     = describe(c.weather_code);
-        document.getElementById("feels").textContent    = Math.round(c.apparent_temperature) + "°C";
-        document.getElementById("humidity").textContent = c.relative_humidity_2m + "%";
-        document.getElementById("wind").textContent     = Math.round(c.wind_speed_10m) + " km/h";
-        document.getElementById("updated").textContent  = new Date(c.time).toLocaleString();
+  <div id="stateMsg" class="state-msg">
+    Search for a city above, or tap the target icon to use your current location.
+  </div>
 
-        hideStatus();
-        resultEl.classList.remove("hidden");
-      } catch (e) {
-        showError("Could not load weather. Try again.");
-      }
-    }
+  <div class="footer-credit">Task 05 — Weather App · Prodigy Infotech</div>
 
-    // ---- 5. Turn a city name into coordinates, then load the weather ----
-    async function searchCity(name) {
-      showLoading();
-      try {
-        const res = await fetch(
-          "https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(name)
-        );
-        const data = await res.json();
-        const hit = data && data.results && data.results[0];
-        if (!hit) { showError("Place not found."); return; }
+</div>
 
-        // build a nice display name like "Mumbai, Maharashtra, India"
-        const label = [hit.name, hit.admin1, hit.country].filter(Boolean).join(", ");
-        await loadWeather(hit.latitude, hit.longitude, label);
-      } catch (e) {
-        showError("Could not search that place.");
-      }
+<script>
+
+  // ---------- elements ----------
+  const cityInput   = document.getElementById('cityInput');
+  const suggestBox  = document.getElementById('suggestions');
+  const locateBtn   = document.getElementById('locateBtn');
+  const scene       = document.getElementById('scene');
+  const rainLayer   = document.getElementById('rainLayer');
+  const readout     = document.getElementById('readout');
+  const stateMsg    = document.getElementById('stateMsg');
+
+  let debounceTimer = null;
+  let activeSuggestionIndex = -1;
+  let currentSuggestions = [];
+
+  // build the rain drops once, reused every time it rains
+  for (let i = 0; i < 26; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'drop';
+    drop.style.left = (Math.random() * 100) + '%';
+    drop.style.animationDelay = (Math.random() * 0.9) + 's';
+    drop.style.height = (10 + Math.random() * 10) + 'px';
+    rainLayer.appendChild(drop);
+  }
+
+  // ---------- city search (Open-Meteo geocoding, no API key needed) ----------
+  cityInput.addEventListener('input', () => {
+    const query = cityInput.value.trim();
+    activeSuggestionIndex = -1;
+
+    if (debounceTimer) clearTimeout(debounceTimer);
+
+    if (query.length === 0) {
+      hideSuggestions();
+      return;
     }
 
-    // ---- 6. Event handlers ----
+    // fires after a short pause so we're not hammering the API on every keystroke,
+    // but a single letter is still enough to trigger a search
+    debounceTimer = setTimeout(() => searchCities(query), 250);
+  });
 
-    // when the user submits the search form
-    form.addEventListener("submit", function (e) {
+  cityInput.addEventListener('keydown', (e) => {
+    if (!suggestBox.classList.contains('show')) return;
+    const items = suggestBox.querySelectorAll('.suggestion-item');
+
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
-      const q = cityIn.value.trim();
-      if (q) searchCity(q);
+      activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, items.length - 1);
+      highlightActive(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+      highlightActive(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && currentSuggestions[activeSuggestionIndex]) {
+        pickCity(currentSuggestions[activeSuggestionIndex]);
+      } else if (currentSuggestions[0]) {
+        pickCity(currentSuggestions[0]);
+      }
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!suggestBox.contains(e.target) && e.target !== cityInput) {
+      hideSuggestions();
+    }
+  });
+
+  function highlightActive(items) {
+    items.forEach((item, i) => item.classList.toggle('active', i === activeSuggestionIndex));
+  }
+
+  async function searchCities(query) {
+    try {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      currentSuggestions = data.results || [];
+      renderSuggestions(currentSuggestions);
+    } catch (err) {
+      // if the lookup fails (e.g. offline) just close the dropdown quietly
+      hideSuggestions();
+    }
+  }
+
+  function renderSuggestions(results) {
+    if (results.length === 0) {
+      suggestBox.innerHTML = '<div class="suggestion-empty">No matching cities</div>';
+      suggestBox.classList.add('show');
+      return;
+    }
+
+    suggestBox.innerHTML = '';
+    results.forEach((place, i) => {
+      const row = document.createElement('div');
+      row.className = 'suggestion-item';
+
+      const region = [place.admin1, place.country].filter(Boolean).join(', ');
+      row.innerHTML = `
+        <span class="suggestion-name">${escapeHtml(place.name)}</span>
+        <span class="suggestion-region">${escapeHtml(region)}</span>
+      `;
+
+      row.addEventListener('click', () => pickCity(place));
+      suggestBox.appendChild(row);
     });
 
-    // Small function for getting the user's location.
-    // getCurrentPosition is the line that makes the browser ask for permission.
-    // If location was blocked earlier, the browser will not show the popup again.
-    function useMyLocation() {
-      // Browsers only allow geolocation on HTTPS (or localhost). If you
-      // double-click this file and open it as file:// it will be blocked
-      // straight away — no prompt is shown. Catch that first so the user
-      // gets a clear message instead of "permission denied".
-      if (!window.isSecureContext) {
-        showError("Location needs https:// — open this page on a web server, not as a local file.");
-        return;
-      }
-      if (!navigator.geolocation) {
-        showError("Geolocation not supported by this browser.");
-        return;
-      }
+    suggestBox.classList.add('show');
+  }
 
-      showLoading();
-      errorEl.textContent = "Your browser should ask for location permission now.";
-      errorEl.classList.remove("hidden");
-      navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          loadWeather(pos.coords.latitude, pos.coords.longitude, "My location");
-        },
-        function (err) {
-          // err.code: 1 = denied, 2 = unavailable, 3 = timeout
-          if (err && err.code === 1)      showError("The browser blocked location. Tap the lock/site settings icon, set Location to Allow, then click the button again.");
-          else if (err && err.code === 2) showError("Could not get your location right now.");
-          else if (err && err.code === 3) showError("Location request timed out.");
-          else                            showError("Could not get your location.");
-        },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
-      );
+  function hideSuggestions() {
+    suggestBox.classList.remove('show');
+    suggestBox.innerHTML = '';
+  }
+
+  function pickCity(place) {
+    cityInput.value = place.name;
+    hideSuggestions();
+    loadWeather(place.latitude, place.longitude, place.name, [place.admin1, place.country].filter(Boolean).join(', '));
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  // ---------- current location ----------
+  // mobile browsers need a real user gesture + the right permission flow,
+  // and geolocation only works reliably over https (or localhost), so we
+  // check for that and give a clear message instead of failing silently
+  locateBtn.addEventListener('click', () => {
+    if (!('geolocation' in navigator)) {
+      showState('Your browser does not support location lookup. Try searching for your city instead.', true);
+      return;
     }
 
-    // when the user clicks "Use my location"
-    locBtn.addEventListener("click", useMyLocation);
+    if (window.isSecureContext === false) {
+      showState('Location access needs a secure (https) connection on mobile. Search for your city instead.', true);
+      return;
+    }
 
-    // ---- 7. Show something on first load so the page isn't empty ----
-    loadWeather(28.6139, 77.209, "New Delhi, India");
-  </script>
+    locateBtn.classList.add('loading');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        locateBtn.classList.remove('loading');
+        const { latitude, longitude } = position.coords;
+        reverseGeocode(latitude, longitude);
+      },
+      (err) => {
+        locateBtn.classList.remove('loading');
+        let msg = 'Could not get your location. ';
+        if (err.code === err.PERMISSION_DENIED) {
+          msg += 'Location permission was denied — check your phone\'s site settings and allow location for this page.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          msg += 'Position unavailable right now. Make sure location services are turned on for your phone.';
+        } else if (err.code === err.TIMEOUT) {
+          msg += 'The request timed out — try again.';
+        } else {
+          msg += 'Please search for your city instead.';
+        }
+        showState(msg, true);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 60000
+      }
+    );
+  });
+
+  async function reverseGeocode(lat, lon) {
+    let name = 'Your location';
+    let sub = '';
+    try {
+      const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&format=json`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.results && data.results[0]) {
+        const place = data.results[0];
+        name = place.name;
+        sub = [place.admin1, place.country].filter(Boolean).join(', ');
+      }
+    } catch (err) {
+      // reverse lookup failing isn't fatal — we still have coordinates for the weather call
+    }
+    loadWeather(lat, lon, name, sub);
+  }
+
+  // ---------- weather fetch ----------
+  async function loadWeather(lat, lon, name, sub) {
+    showState('Loading weather…', false, true);
+
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&timezone=auto`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('bad response');
+      const data = await res.json();
+
+      renderWeather(data.current, name, sub);
+    } catch (err) {
+      showState('Could not load weather right now. Check your connection and try again.', true);
+    }
+  }
+
+  function renderWeather(current, name, sub) {
+    hideState();
+    readout.classList.remove('hidden');
+
+    document.getElementById('placeName').textContent = name;
+    document.getElementById('placeSub').textContent = sub || ' ';
+    document.getElementById('tempValue').textContent = Math.round(current.temperature_2m);
+    document.getElementById('statFeels').textContent = Math.round(current.apparent_temperature) + '°';
+    document.getElementById('statHumidity').textContent = Math.round(current.relative_humidity_2m) + '%';
+    document.getElementById('statWind').textContent = Math.round(current.wind_speed_10m) + ' km/h';
+
+    const { label, mood } = describeWeather(current.weather_code, current.is_day);
+    document.getElementById('conditionText').textContent = label;
+    applyScene(mood);
+  }
+
+  // WMO weather codes from Open-Meteo, grouped into the moods our scene animates
+  function describeWeather(code, isDay) {
+    const day = isDay === 1;
+
+    if (code === 0) return { label: day ? 'Clear sky' : 'Clear night', mood: day ? 'sunny' : 'night' };
+    if (code === 1 || code === 2) return { label: day ? 'Partly cloudy' : 'Partly cloudy night', mood: day ? 'sunny' : 'night' };
+    if (code === 3) return { label: 'Overcast', mood: 'cloudy' };
+    if (code === 45 || code === 48) return { label: 'Foggy', mood: 'cloudy' };
+    if (code >= 51 && code <= 57) return { label: 'Light drizzle', mood: 'rainy' };
+    if (code >= 61 && code <= 67) return { label: 'Rain', mood: 'rainy' };
+    if (code >= 71 && code <= 77) return { label: 'Snow', mood: 'cloudy' };
+    if (code >= 80 && code <= 82) return { label: 'Rain showers', mood: 'rainy' };
+    if (code >= 85 && code <= 86) return { label: 'Snow showers', mood: 'cloudy' };
+    if (code >= 95) return { label: 'Thunderstorm', mood: 'rainy' };
+
+    return { label: 'Weather unavailable', mood: 'cloudy' };
+  }
+
+  function applyScene(mood) {
+    scene.classList.remove('sunny', 'cloudy', 'rainy', 'night');
+    scene.classList.add(mood);
+  }
+
+  // ---------- state messages ----------
+  // `loading` adds a spinner to the message so the user has a clear visual
+  // cue that something is in progress, not just static text
+  function showState(text, isError, loading) {
+    readout.classList.add('hidden');
+    stateMsg.innerHTML = (loading ? '<span class="spinner"></span>' : '') + escapeHtml(text);
+    stateMsg.classList.toggle('error', !!isError);
+    stateMsg.classList.remove('hidden');
+  }
+
+
+  function hideState() {
+    stateMsg.classList.add('hidden');
+  }
+
+  // ---------- on first load, try to auto-detect location ----------
+  // we attempt it silently; if the browser blocks it or the user dismisses
+  // the prompt, we just fall back to a sensible default city so the app
+  // never starts on an empty screen
+  window.addEventListener('load', () => {
+    if (!('geolocation' in navigator) || window.isSecureContext === false) {
+      loadWeather(28.6139, 77.2090, 'New Delhi', 'India');
+      return;
+    }
+
+    showState('Detecting your location…', false, true);
+    locateBtn.classList.add('loading');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        locateBtn.classList.remove('loading');
+        const { latitude, longitude } = position.coords;
+        reverseGeocode(latitude, longitude);
+      },
+      () => {
+        // permission denied / timeout / unavailable — quietly show a default
+        locateBtn.classList.remove('loading');
+        loadWeather(28.6139, 77.2090, 'New Delhi', 'India');
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+
+  });
+
+</script>
+
+
 </body>
 </html>
